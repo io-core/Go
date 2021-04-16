@@ -783,18 +783,24 @@ expression0 is assigned to the procedure variable `expression` to allow the forw
   end-procedure-description *)
   PROCEDURE ArrayType(VAR type: OXB.Type);
     VAR x: OXG.Item; typ: OXB.Type; len: LONGINT;
-  BEGIN NEW(typ); typ.form := OXB.NoTyp;
+  BEGIN (* NEW(typ); typ.form := OXB.NoTyp; *)
+(*
     expression(x);
     IF (x.mode = OXB.Const) & (x.type.form = OXB.Int) & (x.a >= 0) THEN len := x.a
     ELSE len := 1; OXS.Mark("not a valid length")
     END ;
-    IF sym = OXS.of THEN OXS.Get(sym); Type(typ.base);
+*)
+    IF sym = OXS.rbrak THEN OXS.Get(sym); Type(type); (* Type(typ.base); *)
+(*
       IF (typ.base.form = OXB.Array) & (typ.base.len < 0) THEN OXS.Mark("dyn array not allowed") END
-    ELSIF sym = OXS.comma THEN OXS.Get(sym); ArrayType(typ.base)
-    ELSE OXS.Mark("missing OF"); typ.base := OXB.intType
+*)
+    ELSE 
+      OXS.Mark("missing ]"); (* typ.base := OXB.intType *)
     END ;
+(*
     typ.size := (len * typ.base.size + 3) DIV 4 * 4;
     typ.form := OXB.Array; typ.len := len; type := typ
+*)
   END ArrayType;
 
   (* begin-procedure-description
@@ -936,7 +942,7 @@ expression0 is assigned to the procedure variable `expression` to allow the forw
   PROCEDURE Type0(VAR type: OXB.Type);
     VAR dmy: LONGINT; obj: OXB.Object; ptbase: PtrBase;
   BEGIN type := OXB.intType; (*sync*)
-    IF (sym # OXS.ident) & (sym < OXS.array) THEN OXS.Mark("not a type");
+    IF (sym # OXS.ident) & (sym < OXS.lbrak) THEN OXS.Mark("not a type");
       REPEAT OXS.Get(sym) UNTIL (sym = OXS.ident) OR (sym >= OXS.array)
     END ;
     IF sym = OXS.ident THEN
@@ -948,7 +954,7 @@ expression0 is assigned to the procedure variable `expression` to allow the forw
       ELSE OXS.Mark("not a type or undefined")
       END
 *)
-    ELSIF sym = OXS.array THEN OXS.Get(sym); ArrayType(type)
+    ELSIF sym = OXS.lbrak THEN OXS.Get(sym); ArrayType(type)
     ELSIF sym = OXS.record THEN
       OXS.Get(sym); RecordType(type); Check(OXS.end, "no END")
     ELSIF sym = OXS.pointer THEN
@@ -1059,23 +1065,23 @@ expression0 is assigned to the procedure variable `expression` to allow the forw
       x: OXG.Item; tp: OXB.Type; ptbase: PtrBase;
       expo: BOOLEAN; id: OXS.Ident;
   BEGIN (*sync*) pbsList := NIL;
-    IF (sym # OXS.const)  THEN OXS.Mark("const?");
-      REPEAT OXS.Get(sym) UNTIL (sym >= OXS.const)
-    END ;
-    IF sym = OXS.const THEN
       OXS.Get(sym);
+      Check(OXS.lparen, "no (");
       WHILE sym = OXS.ident DO
-        OXS.CopyId(id); OXS.Get(sym); CheckExport(expo);
+        OXS.Get(sym);
+        Type(tp);
         IF sym = OXS.eql THEN OXS.Get(sym) ELSE OXS.Mark("= ?") END;
         expression(x);
+(*
         IF (x.type.form = OXB.String) & (x.b = 2) THEN OXG.StrToChar(x) END ;
         OXB.NewObj(obj, id, OXB.Const); obj.expo := expo;
         IF x.mode = OXB.Const THEN obj.val := x.a; obj.lev := x.b; obj.type := x.type
         ELSE OXS.Mark("expression not constant"); obj.type := OXB.intType
         END;
-        Check(OXS.semicolon, "; missing")
-      END
-    END ;
+*)
+        Check(OXS.semicolon, "no ;")
+      END;
+      Check(OXS.rparen, ") missing");
   END ConstDecl;
 
   (* begin-procedure-description
@@ -1417,6 +1423,7 @@ BEGIN Texts.OpenWriter(W); Texts.WriteString(W, "OX Go Compiler  4.13.2021");
   OXS.SetCommentStyle(OXS.cstyle);
   OXS.SetSigCR(FALSE);
   OXS.SetSemiCR(TRUE);
+  OXS.SetRunes(TRUE);
 
 
 (*  NEW(dummy); dummy.class := OXB.Var; dummy.type := OXB.intType;
